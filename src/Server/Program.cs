@@ -24,16 +24,13 @@ namespace BlazorHero.CleanArchitecture.Server
                 {
                     var context = services.GetRequiredService<BlazorHeroContext>();
 
-                    if (context.Database.IsSqlServer())
-                    {
-                        context.Database.Migrate();
-                    }
+                    context.Database.EnsureCreated();
                 }
                 catch (Exception ex)
                 {
                     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-                    logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+                    logger.LogError(ex, "An error occurred while creating the database.");
 
                     throw;
                 }

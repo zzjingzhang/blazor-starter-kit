@@ -23,6 +23,7 @@ using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 using BlazorHero.CleanArchitecture.Shared.Constants.Localization;
 using BlazorHero.CleanArchitecture.Shared.Constants.Permission;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -212,10 +213,40 @@ namespace BlazorHero.CleanArchitecture.Server.Extensions
         internal static IServiceCollection AddDatabase(
             this IServiceCollection services,
             IConfiguration configuration)
-            => services
-                .AddDbContext<BlazorHeroContext>(options => options
-                    .UseSqlServer(configuration.GetConnectionString("DefaultConnection")))
-            .AddTransient<IDatabaseSeeder, DatabaseSeeder>();
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            EnsureSqliteDatabaseDirectory(connectionString);
+
+            services.AddDbContext<BlazorHeroContext>(options => options.UseSqlite(connectionString));
+
+            return services.AddTransient<IDatabaseSeeder, DatabaseSeeder>();
+        }
+
+        internal static IGlobalConfiguration AddSqliteHangfireStorage(
+            this IGlobalConfiguration configuration,
+            IConfiguration appConfiguration)
+        {
+            var connectionString = appConfiguration.GetConnectionString("DefaultConnection");
+            EnsureSqliteDatabaseDirectory(connectionString);
+            return configuration.UseSQLiteStorage(GetSqliteDatabasePath(connectionString));
+        }
+
+        private static string GetSqliteDatabasePath(string connectionString)
+        {
+            var builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString);
+            return builder.DataSource;
+        }
+
+        private static void EnsureSqliteDatabaseDirectory(string connectionString)
+        {
+            var databasePath = GetSqliteDatabasePath(connectionString);
+            var databaseDirectory = Path.GetDirectoryName(databasePath);
+
+            if (!string.IsNullOrWhiteSpace(databaseDirectory))
+            {
+                Directory.CreateDirectory(databaseDirectory);
+            }
+        }
 
         internal static IServiceCollection AddCurrentUserService(this IServiceCollection services)
         {
