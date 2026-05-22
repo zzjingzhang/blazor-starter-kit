@@ -250,6 +250,12 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 # Business Intelligence projects
 *.rdl.data
 *.bim.layout
@@ -341,6 +347,11 @@ healthchecksdb
 **/Server/Logs
 **/Server/Files/Images/ProfilePictures
 **/Server/Files/Documents
+
+# Runtime logs
+src/Server/Logs/
+*.log
+log*.txt
 
 # Project's xml-files
 *.xml
