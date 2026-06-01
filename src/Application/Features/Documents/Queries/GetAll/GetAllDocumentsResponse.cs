@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using BlazorHero.CleanArchitecture.Domain.Enums;
 
 namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.GetAll
 {
@@ -13,5 +14,9 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.Ge
         public string URL { get; set; }
         public string DocumentType { get; set; }
         public int DocumentTypeId { get; set; }
+        public DocumentStatus Status { get; set; }
+        public string ReviewerId { get; set; }
+        public string RejectionReason { get; set; }
+        public DateTime? ReviewedOn { get; set; }
     }
 }

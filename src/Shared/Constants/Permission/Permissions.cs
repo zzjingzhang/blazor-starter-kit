@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -41,6 +41,9 @@ namespace BlazorHero.CleanArchitecture.Shared.Constants.Permission
             public const string Edit = "Permissions.Documents.Edit";
             public const string Delete = "Permissions.Documents.Delete";
             public const string Search = "Permissions.Documents.Search";
+            public const string Approve = "Permissions.Documents.Approve";
+            public const string Reject = "Permissions.Documents.Reject";
+            public const string Archive = "Permissions.Documents.Archive";
         }
 
         [DisplayName("Document Types")]

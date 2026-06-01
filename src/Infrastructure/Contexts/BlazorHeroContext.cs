@@ -1,4 +1,4 @@
-﻿using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
+using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
 using BlazorHero.CleanArchitecture.Application.Models.Chat;
 using BlazorHero.CleanArchitecture.Infrastructure.Models.Identity;
 using BlazorHero.CleanArchitecture.Domain.Contracts;
@@ -70,7 +70,7 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Contexts
             
             foreach (var property in builder.Model.GetEntityTypes()
                 .SelectMany(t => t.GetProperties())
-                .Where(p => p.Name is "LastModifiedBy" or "CreatedBy"))
+                .Where(p => p.Name is "LastModifiedBy" or "CreatedBy" or "ReviewerId"))
             {
                 property.SetColumnType("nvarchar(128)");
             }

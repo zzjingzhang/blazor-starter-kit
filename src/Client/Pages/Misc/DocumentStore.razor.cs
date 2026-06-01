@@ -1,4 +1,6 @@
-﻿using BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.GetAll;
+using BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.AddEdit;
+using BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.Reject;
+using BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.GetAll;
 using BlazorHero.CleanArchitecture.Application.Requests.Documents;
 using BlazorHero.CleanArchitecture.Client.Extensions;
 using MudBlazor;
@@ -7,12 +9,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.AddEdit;
 using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Misc.Document;
 using BlazorHero.CleanArchitecture.Domain.Entities.Misc;
+using BlazorHero.CleanArchitecture.Domain.Enums;
+using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 using BlazorHero.CleanArchitecture.Shared.Constants.Permission;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
 {
@@ -26,6 +30,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
         private int _totalItems;
         private int _currentPage;
         private string _searchString = "";
+        private DocumentStatus? _statusFilter;
         private bool _dense = false;
         private bool _striped = true;
         private bool _bordered = false;
@@ -36,7 +41,12 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
         private bool _canDeleteDocuments;
         private bool _canSearchDocuments;
         private bool _canViewDocumentExtendedAttributes;
+        private bool _canApproveDocuments;
+        private bool _canRejectDocuments;
+        private bool _canArchiveDocuments;
         private bool _loaded;
+
+        private HubConnection _hubConnection;
 
         protected override async Task OnInitializedAsync()
         {
@@ -46,6 +56,9 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
             _canDeleteDocuments = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.Documents.Delete)).Succeeded;
             _canSearchDocuments = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.Documents.Search)).Succeeded;
             _canViewDocumentExtendedAttributes = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.DocumentExtendedAttributes.View)).Succeeded;
+            _canApproveDocuments = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.Documents.Approve)).Succeeded;
+            _canRejectDocuments = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.Documents.Reject)).Succeeded;
+            _canArchiveDocuments = (await _authorizationService.AuthorizeAsync(_currentUser, Permissions.Documents.Archive)).Succeeded;
 
             _loaded = true;
 
@@ -56,6 +69,31 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
             {
                 CurrentUserId = user.GetUserId();
             }
+
+            _hubConnection = _hubConnection.TryInitialize(_navigationManager, _localStorage);
+            _hubConnection.On<string, string>(ApplicationConstants.SignalR.ReceiveDocumentApprovalNotification, (documentTitle, status) =>
+            {
+                _snackBar.Add($"{documentTitle} - {status}", Severity.Info);
+                InvokeAsync(async () =>
+                {
+                    await LoadData(_currentPage, 10, new TableState { Page = _currentPage, PageSize = 10 });
+                    StateHasChanged();
+                });
+            });
+            await _hubConnection.StartAsync();
+        }
+
+        private (Color color, string icon) GetStatusDisplay(DocumentStatus status)
+        {
+            return status switch
+            {
+                DocumentStatus.Draft => (Color.Default, Icons.Material.Filled.Edit),
+                DocumentStatus.PendingReview => (Color.Warning, Icons.Material.Filled.HourglassTop),
+                DocumentStatus.Published => (Color.Success, Icons.Material.Filled.CheckCircle),
+                DocumentStatus.Rejected => (Color.Error, Icons.Material.Filled.Cancel),
+                DocumentStatus.Archived => (Color.Info, Icons.Material.Filled.Archive),
+                _ => (Color.Default, Icons.Material.Filled.Help)
+            };
         }
 
         private async Task<TableData<GetAllDocumentsResponse>> ServerReload(TableState state)
@@ -70,7 +108,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
 
         private async Task LoadData(int pageNumber, int pageSize, TableState state)
         {
-            var request = new GetAllPagedDocumentsRequest { PageSize = pageSize, PageNumber = pageNumber + 1, SearchString = _searchString };
+            var request = new GetAllPagedDocumentsRequest { PageSize = pageSize, PageNumber = pageNumber + 1, SearchString = _searchString, StatusFilter = _statusFilter };
             var response = await DocumentManager.GetAllAsync(request);
             if (response.Succeeded)
             {
@@ -106,6 +144,9 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
                     case "documentIsPublicField":
                         loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.IsPublic);
                         break;
+                    case "documentStatusField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.Status);
+                        break;
                     case "documentDateCreatedField":
                         loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.CreatedOn);
                         break;
@@ -128,6 +169,12 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
         private void OnSearch(string text)
         {
             _searchString = text;
+            _table.ReloadServerData();
+        }
+
+        private void OnStatusFilterChanged(DocumentStatus? status)
+        {
+            _statusFilter = status;
             _table.ReloadServerData();
         }
 
@@ -184,6 +231,72 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
                     {
                         _snackBar.Add(message, Severity.Error);
                     }
+                }
+            }
+        }
+
+        private async Task SubmitForReview(int id)
+        {
+            var response = await DocumentManager.SubmitForReviewAsync(id);
+            if (response.Succeeded)
+            {
+                OnSearch("");
+                _snackBar.Add(response.Messages[0], Severity.Success);
+            }
+            else
+            {
+                foreach (var message in response.Messages)
+                {
+                    _snackBar.Add(message, Severity.Error);
+                }
+            }
+        }
+
+        private async Task Approve(int id)
+        {
+            var response = await DocumentManager.ApproveAsync(id);
+            if (response.Succeeded)
+            {
+                OnSearch("");
+                _snackBar.Add(response.Messages[0], Severity.Success);
+            }
+            else
+            {
+                foreach (var message in response.Messages)
+                {
+                    _snackBar.Add(message, Severity.Error);
+                }
+            }
+        }
+
+        private async Task OpenRejectDialog(int id)
+        {
+            var parameters = new DialogParameters
+            {
+                { nameof(RejectDocumentDialog.DocumentId), id }
+            };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
+            var dialog = _dialogService.Show<RejectDocumentDialog>(_localizer["Reject Document"], parameters, options);
+            var result = await dialog.Result;
+            if (!result.Cancelled)
+            {
+                OnSearch("");
+            }
+        }
+
+        private async Task Archive(int id)
+        {
+            var response = await DocumentManager.ArchiveAsync(id);
+            if (response.Succeeded)
+            {
+                OnSearch("");
+                _snackBar.Add(response.Messages[0], Severity.Success);
+            }
+            else
+            {
+                foreach (var message in response.Messages)
+                {
+                    _snackBar.Add(message, Severity.Error);
                 }
             }
         }

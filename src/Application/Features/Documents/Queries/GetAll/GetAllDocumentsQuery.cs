@@ -1,8 +1,9 @@
-﻿using BlazorHero.CleanArchitecture.Application.Extensions;
+using BlazorHero.CleanArchitecture.Application.Extensions;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Repositories;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
 using BlazorHero.CleanArchitecture.Application.Specifications.Misc;
 using BlazorHero.CleanArchitecture.Domain.Entities.Misc;
+using BlazorHero.CleanArchitecture.Domain.Enums;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
 using MediatR;
 using System;
@@ -18,12 +19,14 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.Ge
         public int PageNumber { get; set; }
         public int PageSize { get; set; }
         public string SearchString { get; set; }
+        public DocumentStatus? StatusFilter { get; set; }
 
-        public GetAllDocumentsQuery(int pageNumber, int pageSize, string searchString)
+        public GetAllDocumentsQuery(int pageNumber, int pageSize, string searchString, DocumentStatus? statusFilter = null)
         {
             PageNumber = pageNumber;
             PageSize = pageSize;
             SearchString = searchString;
+            StatusFilter = statusFilter;
         }
     }
 
@@ -51,9 +54,13 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.Ge
                 Description = e.Description,
                 URL = e.URL,
                 DocumentType = e.DocumentType.Name,
-                DocumentTypeId = e.DocumentTypeId
+                DocumentTypeId = e.DocumentTypeId,
+                Status = e.Status,
+                ReviewerId = e.ReviewerId,
+                RejectionReason = e.RejectionReason,
+                ReviewedOn = e.ReviewedOn
             };
-            var docSpec = new DocumentFilterSpecification(request.SearchString, _currentUserService.UserId);
+            var docSpec = new DocumentFilterSpecification(request.SearchString, _currentUserService.UserId, request.StatusFilter);
             var data = await _unitOfWork.Repository<Document>().Entities
                .Specify(docSpec)
                .Select(expression)

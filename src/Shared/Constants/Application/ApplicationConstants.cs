@@ -1,4 +1,4 @@
-﻿namespace BlazorHero.CleanArchitecture.Shared.Constants.Application
+namespace BlazorHero.CleanArchitecture.Shared.Constants.Application
 {
     public static class ApplicationConstants
     {
@@ -24,6 +24,8 @@
             public const string PingRequest = "PingRequestAsync";
             public const string PingResponse = "PingResponseAsync";
 
+            public const string SendDocumentApprovalNotification = "DocumentApprovalNotificationAsync";
+            public const string ReceiveDocumentApprovalNotification = "ReceiveDocumentApprovalNotification";
         }
         public static class Cache
         {

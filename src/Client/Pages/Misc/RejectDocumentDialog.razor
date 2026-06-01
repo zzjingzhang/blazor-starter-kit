@@ -1,0 +1,52 @@
+@inject Microsoft.Extensions.Localization.IStringLocalizer<RejectDocumentDialog> _localizer
+@using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Misc.Document
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Cancel" Class="mr-3 mb-n1" />
+            @_localizer["Reject Document"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string" @bind-Value="_rejectionReason" Label="@_localizer["Rejection Reason"]" Lines="4" MultiLine="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" OnClick="Cancel">@_localizer["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="RejectAsync" Disabled="@string.IsNullOrWhiteSpace(_rejectionReason)">@_localizer["Reject"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject] private IDocumentManager DocumentManager { get; set; }
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; }
+    [Parameter] public int DocumentId { get; set; }
+
+    private string _rejectionReason = "";
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task RejectAsync()
+    {
+        var response = await DocumentManager.RejectAsync(new BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.Reject.RejectDocumentCommand
+        {
+            Id = DocumentId,
+            RejectionReason = _rejectionReason
+        });
+        if (response.Succeeded)
+        {
+            _snackBar.Add(response.Messages[0], Severity.Success);
+            MudDialog.Close();
+        }
+        else
+        {
+            foreach (var message in response.Messages)
+            {
+                _snackBar.Add(message, Severity.Error);
+            }
+        }
+    }
+}

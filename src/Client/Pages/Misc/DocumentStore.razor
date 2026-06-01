@@ -1,7 +1,9 @@
-﻿@page "/document-store"
+@page "/document-store"
 @attribute [Authorize(Policy = Permissions.Documents.View)]
 @inject Microsoft.Extensions.Localization.IStringLocalizer<DocumentStore> _localizer
 @using BlazorHero.CleanArchitecture.Application.Features.Documents.Queries.GetAll
+@using BlazorHero.CleanArchitecture.Domain.Enums
+@using BlazorHero.CleanArchitecture.Shared.Constants.Application
 
 <style>
     .mud-table-container {
@@ -30,6 +32,14 @@ else
                 }
             </div>
             <MudSpacer />
+            <MudSelect T="DocumentStatus?" Label="@_localizer["Status"]" Value="@_statusFilter" ValueChanged="OnStatusFilterChanged" Style="min-width: 160px; margin-right: 16px;">
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)null)">@_localizer["All"]</MudSelectItem>
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)DocumentStatus.Draft)">@_localizer["Draft"]</MudSelectItem>
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)DocumentStatus.PendingReview)">@_localizer["Pending Review"]</MudSelectItem>
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)DocumentStatus.Published)">@_localizer["Published"]</MudSelectItem>
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)DocumentStatus.Rejected)">@_localizer["Rejected"]</MudSelectItem>
+                <MudSelectItem T="DocumentStatus?" Value="@((DocumentStatus?)DocumentStatus.Archived)">@_localizer["Archived"]</MudSelectItem>
+            </MudSelect>
             @if (_canSearchDocuments)
             {
                 <MudTextField T="string" ValueChanged="@(s=>OnSearch(s))" Placeholder="@_localizer["Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -41,6 +51,7 @@ else
             <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentDescriptionField">@_localizer["Description"]</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentDocumentTypeField">@_localizer["Document Type"]</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentIsPublicField">@_localizer["Is Public"]</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentStatusField">@_localizer["Status"]</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentDateCreatedField">@_localizer["Date Created"]</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="GetAllDocumentsResponse" SortLabel="documentOwnerField">@_localizer["Owner"]</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right">@_localizer["Actions"]</MudTh>
@@ -57,6 +68,14 @@ else
                 <MudHighlighter Text="@context.DocumentType" HighlightedText="@_searchString" />
             </MudTd>
             <MudTd DataLabel="IsPublic"><MudCheckBox @bind-Checked="@context.IsPublic" ReadOnly="true" Color="Color.Secondary" /></MudTd>
+            <MudTd DataLabel="Status">
+                @{
+                    var (statusColor, statusIcon) = GetStatusDisplay(context.Status);
+                }
+                <MudChip Color="@statusColor" Variant="Variant.Filled" Size="Size.Small">
+                    @context.Status
+                </MudChip>
+            </MudTd>
             <MudTd DataLabel="Date Created">@context.CreatedOn</MudTd>
             <MudTd DataLabel="Owner">
                 @if (context.CreatedBy == CurrentUserId)
@@ -72,7 +91,10 @@ else
                     }
             </MudTd>
             <MudTd DataLabel="Actions" Style="text-align: right">
-                @if (_canEditDocuments || _canDeleteDocuments || _canViewDocumentExtendedAttributes)
+                @{
+                    var hasActions = _canEditDocuments || _canDeleteDocuments || _canViewDocumentExtendedAttributes || _canApproveDocuments || _canRejectDocuments || _canArchiveDocuments;
+                }
+                @if (hasActions)
                     {
                     <MudMenu Label="@_localizer["Actions"]" Variant="Variant.Filled" DisableElevation="true" EndIcon="@Icons.Filled.KeyboardArrowDown" IconColor="Color.Secondary" Direction="Direction.Left" OffsetX="true">
                         @if (_canViewDocumentExtendedAttributes)
@@ -88,6 +110,31 @@ else
                             @if (_canDeleteDocuments)
                                 {
                                 <MudMenuItem @onclick="@(() => Delete(@context.Id))">@_localizer["Delete"]</MudMenuItem>
+                                }
+                            }
+                        @if (context.Status == DocumentStatus.Draft || context.Status == DocumentStatus.Rejected)
+                            {
+                            @if (_canEditDocuments && context.CreatedBy == CurrentUserId)
+                                {
+                                <MudMenuItem @onclick="@(() => SubmitForReview(@context.Id))">@_localizer["Submit for Review"]</MudMenuItem>
+                                }
+                            }
+                        @if (context.Status == DocumentStatus.PendingReview)
+                            {
+                            @if (_canApproveDocuments)
+                                {
+                                <MudMenuItem @onclick="@(() => Approve(@context.Id))">@_localizer["Approve"]</MudMenuItem>
+                                }
+                            @if (_canRejectDocuments)
+                                {
+                                <MudMenuItem @onclick="@(() => OpenRejectDialog(@context.Id))">@_localizer["Reject"]</MudMenuItem>
+                                }
+                            }
+                        @if (context.Status == DocumentStatus.Published || context.Status == DocumentStatus.Draft || context.Status == DocumentStatus.Rejected)
+                            {
+                            @if (_canArchiveDocuments)
+                                {
+                                <MudMenuItem @onclick="@(() => Archive(@context.Id))">@_localizer["Archive"]</MudMenuItem>
                                 }
                             }
                         <MudMenuItem Link="@context.URL" Disabled="@(string.IsNullOrWhiteSpace(context.URL))" Target="_blank">@_localizer["Download"]</MudMenuItem>

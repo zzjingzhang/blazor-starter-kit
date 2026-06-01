@@ -1,4 +1,4 @@
-﻿using BlazorHero.CleanArchitecture.Application.Models.Chat;
+using BlazorHero.CleanArchitecture.Application.Models.Chat;
 using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
@@ -52,6 +52,11 @@ namespace BlazorHero.CleanArchitecture.Server.Hubs
         public async Task RegenerateTokensAsync()
         {
             await Clients.All.SendAsync(ApplicationConstants.SignalR.ReceiveRegenerateTokens);
+        }
+
+        public async Task DocumentApprovalNotificationAsync(string documentTitle, string status, string createdBy)
+        {
+            await Clients.User(createdBy).SendAsync(ApplicationConstants.SignalR.ReceiveDocumentApprovalNotification, documentTitle, status);
         }
     }
 }
