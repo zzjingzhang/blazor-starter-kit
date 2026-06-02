@@ -9,5 +9,7 @@
         public decimal Rate { get; set; }
         public string Brand { get; set; }
         public int BrandId { get; set; }
+        public int Stock { get; set; }
+        public bool IsActive { get; set; }
     }
 }

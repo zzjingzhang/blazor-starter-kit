@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Interfaces.Repositories;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Interfaces.Repositories;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
 using BlazorHero.CleanArchitecture.Domain.Entities.Catalog;
 using MediatR;
@@ -17,10 +18,12 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Exp
     public class ExportProductsQuery : IRequest<Result<string>>
     {
         public string SearchString { get; set; }
+        public ProductStatusFilter? StatusFilter { get; set; }
 
-        public ExportProductsQuery(string searchString = "")
+        public ExportProductsQuery(string searchString = "", ProductStatusFilter? statusFilter = null)
         {
             SearchString = searchString;
+            StatusFilter = statusFilter;
         }
     }
 
@@ -41,7 +44,7 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Exp
 
         public async Task<Result<string>> Handle(ExportProductsQuery request, CancellationToken cancellationToken)
         {
-            var productFilterSpec = new ProductFilterSpecification(request.SearchString);
+            var productFilterSpec = new ProductFilterSpecification(request.SearchString, request.StatusFilter);
             var products = await _unitOfWork.Repository<Product>().Entities
                 .Specify(productFilterSpec)
                 .ToListAsync( cancellationToken);
@@ -51,7 +54,9 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Exp
                 { _localizer["Name"], item => item.Name },
                 { _localizer["Barcode"], item => item.Barcode },
                 { _localizer["Description"], item => item.Description },
-                { _localizer["Rate"], item => item.Rate }
+                { _localizer["Rate"], item => item.Rate },
+                { _localizer["Stock"], item => item.Stock },
+                { _localizer["IsActive"], item => item.IsActive ? _localizer["Active"] : _localizer["Inactive"] }
             }, sheetName: _localizer["Products"]);
 
             return await Result<string>.SuccessAsync(data: data);

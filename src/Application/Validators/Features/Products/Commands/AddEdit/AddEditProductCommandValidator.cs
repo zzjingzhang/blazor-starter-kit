@@ -18,6 +18,8 @@ namespace BlazorHero.CleanArchitecture.Application.Validators.Features.Products.
                 .GreaterThan(0).WithMessage(x => localizer["Brand is required!"]);
             RuleFor(request => request.Rate)
                 .GreaterThan(0).WithMessage(x => localizer["Rate must be greater than 0"]);
+            RuleFor(request => request.Stock)
+                .GreaterThanOrEqualTo(0).WithMessage(x => localizer["Stock must be greater than or equal to 0"]);
         }
     }
 }

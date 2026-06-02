@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
 using BlazorHero.CleanArchitecture.Application.Requests.Catalog;
 using BlazorHero.CleanArchitecture.Client.Extensions;
 using BlazorHero.CleanArchitecture.Shared.Constants.Application;
@@ -29,6 +30,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
         private int _totalItems;
         private int _currentPage;
         private string _searchString = "";
+        private ProductStatusFilter? _statusFilter = null;
         private bool _dense = false;
         private bool _striped = true;
         private bool _bordered = false;
@@ -76,7 +78,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                 orderings = state.SortDirection != SortDirection.None ? new[] {$"{state.SortLabel} {state.SortDirection}"} : new[] {$"{state.SortLabel}"};
             }
 
-            var request = new GetAllPagedProductsRequest { PageSize = pageSize, PageNumber = pageNumber + 1, SearchString = _searchString, Orderby = orderings };
+            var request = new GetAllPagedProductsRequest { PageSize = pageSize, PageNumber = pageNumber + 1, SearchString = _searchString, Orderby = orderings, StatusFilter = _statusFilter };
             var response = await ProductManager.GetProductsAsync(request);
             if (response.Succeeded)
             {
@@ -99,9 +101,15 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
             _table.ReloadServerData();
         }
 
+        private void OnFilterChanged(ProductStatusFilter? filter)
+        {
+            _statusFilter = filter;
+            _table.ReloadServerData();
+        }
+
         private async Task ExportToExcel()
         {
-            var response = await ProductManager.ExportToExcelAsync(_searchString);
+            var response = await ProductManager.ExportToExcelAsync(_searchString, _statusFilter);
             if (response.Succeeded)
             {
                 await _jsRuntime.InvokeVoidAsync("Download", new
@@ -110,7 +118,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                     FileName = $"{nameof(Products).ToLower()}_{DateTime.Now:ddMMyyyyHHmmss}.xlsx",
                     MimeType = ApplicationConstants.MimeTypes.OpenXml
                 });
-                _snackBar.Add(string.IsNullOrWhiteSpace(_searchString)
+                _snackBar.Add(string.IsNullOrWhiteSpace(_searchString) && !_statusFilter.HasValue
                     ? _localizer["Products exported"]
                     : _localizer["Filtered Products exported"], Severity.Success);
             }
@@ -138,7 +146,9 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                         Description = product.Description,
                         Rate = product.Rate,
                         BrandId = product.BrandId,
-                        Barcode = product.Barcode
+                        Barcode = product.Barcode,
+                        Stock = product.Stock,
+                        IsActive = product.IsActive
                     });
                 }
             }

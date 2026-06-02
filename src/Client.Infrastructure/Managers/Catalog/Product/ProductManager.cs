@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
 using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
 using BlazorHero.CleanArchitecture.Application.Requests.Catalog;
 using BlazorHero.CleanArchitecture.Client.Infrastructure.Extensions;
@@ -24,11 +25,11 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Catalog.Pr
             return await response.ToResult<int>();
         }
 
-        public async Task<IResult<string>> ExportToExcelAsync(string searchString = "")
+        public async Task<IResult<string>> ExportToExcelAsync(string searchString = "", ProductStatusFilter? statusFilter = null)
         {
-            var response = await _httpClient.GetAsync(string.IsNullOrWhiteSpace(searchString)
+            var response = await _httpClient.GetAsync(string.IsNullOrWhiteSpace(searchString) && !statusFilter.HasValue
                 ? Routes.ProductsEndpoints.Export
-                : Routes.ProductsEndpoints.ExportFiltered(searchString));
+                : Routes.ProductsEndpoints.ExportFiltered(searchString, statusFilter));
             return await response.ToResult<string>();
         }
 
@@ -40,7 +41,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Catalog.Pr
 
         public async Task<PaginatedResult<GetAllPagedProductsResponse>> GetProductsAsync(GetAllPagedProductsRequest request)
         {
-            var response = await _httpClient.GetAsync(Routes.ProductsEndpoints.GetAllPaged(request.PageNumber, request.PageSize, request.SearchString, request.Orderby));
+            var response = await _httpClient.GetAsync(Routes.ProductsEndpoints.GetAllPaged(request.PageNumber, request.PageSize, request.SearchString, request.Orderby, request.StatusFilter));
             return await response.ToPaginatedResult<GetAllPagedProductsResponse>();
         }
 

@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Extensions;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Extensions;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Repositories;
 using BlazorHero.CleanArchitecture.Application.Specifications.Catalog;
 using BlazorHero.CleanArchitecture.Domain.Entities.Catalog;
@@ -19,12 +20,14 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Get
         public int PageSize { get; set; }
         public string SearchString { get; set; }
         public string[] OrderBy { get; set; } // of the form fieldname [ascending|descending],fieldname [ascending|descending]...
+        public ProductStatusFilter? StatusFilter { get; set; }
 
-        public GetAllProductsQuery(int pageNumber, int pageSize, string searchString, string orderBy)
+        public GetAllProductsQuery(int pageNumber, int pageSize, string searchString, string orderBy, ProductStatusFilter? statusFilter = null)
         {
             PageNumber = pageNumber;
             PageSize = pageSize;
             SearchString = searchString;
+            StatusFilter = statusFilter;
             if (!string.IsNullOrWhiteSpace(orderBy))
             {
                 OrderBy = orderBy.Split(',');
@@ -51,9 +54,11 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Get
                 Rate = e.Rate,
                 Barcode = e.Barcode,
                 Brand = e.Brand.Name,
-                BrandId = e.BrandId
+                BrandId = e.BrandId,
+                Stock = e.Stock,
+                IsActive = e.IsActive
             };
-            var productFilterSpec = new ProductFilterSpecification(request.SearchString);
+            var productFilterSpec = new ProductFilterSpecification(request.SearchString, request.StatusFilter);
             if (request.OrderBy?.Any() != true)
             {
                 var data = await _unitOfWork.Repository<Product>().Entities

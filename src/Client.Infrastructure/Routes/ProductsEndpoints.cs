@@ -1,10 +1,11 @@
-﻿using System.Linq;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using System.Linq;
 
 namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Routes
 {
     public static class ProductsEndpoints
     {
-        public static string GetAllPaged(int pageNumber, int pageSize, string searchString, string[] orderBy)
+        public static string GetAllPaged(int pageNumber, int pageSize, string searchString, string[] orderBy, ProductStatusFilter? statusFilter = null)
         {
             var url = $"api/v1/products?pageNumber={pageNumber}&pageSize={pageSize}&searchString={searchString}&orderBy=";
             if (orderBy?.Any() == true)
@@ -14,6 +15,10 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Routes
                     url += $"{orderByPart},";
                 }
                 url = url[..^1]; // loose training ,
+            }
+            if (statusFilter.HasValue)
+            {
+                url += $"&statusFilter={statusFilter.Value}";
             }
             return url;
         }
@@ -25,9 +30,14 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Routes
             return $"api/v1/products/image/{productId}";
         }
 
-        public static string ExportFiltered(string searchString)
+        public static string ExportFiltered(string searchString, ProductStatusFilter? statusFilter = null)
         {
-            return $"{Export}?searchString={searchString}";
+            var url = $"{Export}?searchString={searchString}";
+            if (statusFilter.HasValue)
+            {
+                url += $"&statusFilter={statusFilter.Value}";
+            }
+            return url;
         }
 
         public static string Save = "api/v1/products";

@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
 using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Delete;
 using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.Export;
 using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
@@ -19,12 +20,13 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.v1.Catalog
         /// <param name="pageSize"></param>
         /// <param name="searchString"></param>
         /// <param name="orderBy"></param>
+        /// <param name="statusFilter"></param>
         /// <returns>Status 200 OK</returns>
         [Authorize(Policy = Permissions.Products.View)]
         [HttpGet]
-        public async Task<IActionResult> GetAll(int pageNumber, int pageSize, string searchString, string orderBy = null)
+        public async Task<IActionResult> GetAll(int pageNumber, int pageSize, string searchString, string orderBy = null, ProductStatusFilter? statusFilter = null)
         {
-            var products = await _mediator.Send(new GetAllProductsQuery(pageNumber, pageSize, searchString, orderBy));
+            var products = await _mediator.Send(new GetAllProductsQuery(pageNumber, pageSize, searchString, orderBy, statusFilter));
             return Ok(products);
         }
 
@@ -69,12 +71,13 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.v1.Catalog
         /// Search Products and Export to Excel
         /// </summary>
         /// <param name="searchString"></param>
+        /// <param name="statusFilter"></param>
         /// <returns>Status 200 OK</returns>
         [Authorize(Policy = Permissions.Products.Export)]
         [HttpGet("export")]
-        public async Task<IActionResult> Export(string searchString = "")
+        public async Task<IActionResult> Export(string searchString = "", ProductStatusFilter? statusFilter = null)
         {
-            return Ok(await _mediator.Send(new ExportProductsQuery(searchString)));
+            return Ok(await _mediator.Send(new ExportProductsQuery(searchString, statusFilter)));
         }
     }
 }

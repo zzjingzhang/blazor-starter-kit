@@ -28,6 +28,10 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Ad
         public decimal Rate { get; set; }
         [Required]
         public int BrandId { get; set; }
+        [Required]
+        [Range(0, int.MaxValue)]
+        public int Stock { get; set; }
+        public bool IsActive { get; set; } = true;
         public UploadRequest UploadRequest { get; set; }
     }
 
@@ -84,6 +88,8 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Ad
                     }
                     product.Rate = (command.Rate == 0) ? product.Rate : command.Rate;
                     product.BrandId = (command.BrandId == 0) ? product.BrandId : command.BrandId;
+                    product.Stock = command.Stock;
+                    product.IsActive = command.IsActive;
                     await _unitOfWork.Repository<Product>().UpdateAsync(product);
                     await _unitOfWork.Commit(cancellationToken);
                     return await Result<int>.SuccessAsync(product.Id, _localizer["Product Updated"]);

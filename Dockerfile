@@ -18,6 +18,25 @@ RUN dotnet publish "Server.csproj" -c Release -o /app/publish --no-restore /p:Us
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS final
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libgdiplus \
+        libc6-dev \
+        libx11-dev \
+        libtiff-dev \
+        libcairo2-dev \
+        libfontconfig1-dev \
+        ttf-mscorefonts-installer \
+    || apt-get install -y --no-install-recommends \
+        libgdiplus \
+        libc6-dev \
+        libx11-dev \
+        libtiff-dev \
+        libcairo2-dev \
+        libfontconfig1-dev \
+        fonts-dejavu \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_URLS=http://+:5000
 EXPOSE 5000
 

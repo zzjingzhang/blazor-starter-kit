@@ -1,4 +1,5 @@
 ﻿using BlazorHero.CleanArchitecture.Domain.Contracts;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlazorHero.CleanArchitecture.Domain.Entities.Catalog
@@ -15,5 +16,9 @@ namespace BlazorHero.CleanArchitecture.Domain.Entities.Catalog
         public decimal Rate { get; set; }
         public int BrandId { get; set; }
         public virtual Brand Brand { get; set; }
+
+        [Range(0, int.MaxValue)]
+        public int Stock { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }

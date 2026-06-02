@@ -1,4 +1,5 @@
-﻿using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
+﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit;
 using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
 using BlazorHero.CleanArchitecture.Application.Requests.Catalog;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
@@ -16,6 +17,6 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Catalog.Pr
 
         Task<IResult<int>> DeleteAsync(int id);
 
-        Task<IResult<string>> ExportToExcelAsync(string searchString = "");
+        Task<IResult<string>> ExportToExcelAsync(string searchString = "", ProductStatusFilter? statusFilter = null);
     }
 }
