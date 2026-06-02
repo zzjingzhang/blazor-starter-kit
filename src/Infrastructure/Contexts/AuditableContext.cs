@@ -1,4 +1,6 @@
-﻿using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Application.Enums;
+using BlazorHero.CleanArchitecture.Domain.Entities.Misc;
+using BlazorHero.CleanArchitecture.Domain.Enums;
 using BlazorHero.CleanArchitecture.Infrastructure.Models.Audit;
 using BlazorHero.CleanArchitecture.Infrastructure.Models.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -42,6 +44,26 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Contexts
                     UserId = userId
                 };
                 auditEntries.Add(auditEntry);
+
+                bool hasStatusChange = false;
+                AuditType? documentStatusAuditType = null;
+
+                if (entry.Entity is Document document && entry.State == EntityState.Modified)
+                {
+                    var statusProperty = entry.Property(nameof(Document.Status));
+                    if (statusProperty.IsModified && statusProperty.OriginalValue != null && statusProperty.CurrentValue != null)
+                    {
+                        var oldStatus = (DocumentStatus)statusProperty.OriginalValue;
+                        var newStatus = (DocumentStatus)statusProperty.CurrentValue;
+
+                        if (oldStatus != newStatus)
+                        {
+                            hasStatusChange = true;
+                            documentStatusAuditType = ResolveDocumentAuditType(oldStatus, newStatus);
+                        }
+                    }
+                }
+
                 foreach (var property in entry.Properties)
                 {
                     if (property.IsTemporary)
@@ -73,7 +95,14 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Contexts
                             if (property.IsModified && property.OriginalValue?.Equals(property.CurrentValue) == false)
                             {
                                 auditEntry.ChangedColumns.Add(propertyName);
-                                auditEntry.AuditType = AuditType.Update;
+                                if (hasStatusChange && documentStatusAuditType.HasValue)
+                                {
+                                    auditEntry.AuditType = documentStatusAuditType.Value;
+                                }
+                                else
+                                {
+                                    auditEntry.AuditType = AuditType.Update;
+                                }
                                 auditEntry.OldValues[propertyName] = property.OriginalValue;
                                 auditEntry.NewValues[propertyName] = property.CurrentValue;
                             }
@@ -86,6 +115,27 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Contexts
                 AuditTrails.Add(auditEntry.ToAudit());
             }
             return auditEntries.Where(_ => _.HasTemporaryProperties).ToList();
+        }
+
+        private static AuditType ResolveDocumentAuditType(DocumentStatus oldStatus, DocumentStatus newStatus)
+        {
+            if (newStatus == DocumentStatus.Archived)
+            {
+                return AuditType.Archive;
+            }
+            if (newStatus == DocumentStatus.PendingReview && (oldStatus == DocumentStatus.Draft || oldStatus == DocumentStatus.Rejected))
+            {
+                return AuditType.SubmitForReview;
+            }
+            if (oldStatus == DocumentStatus.PendingReview && newStatus == DocumentStatus.Published)
+            {
+                return AuditType.Approve;
+            }
+            if (oldStatus == DocumentStatus.PendingReview && newStatus == DocumentStatus.Rejected)
+            {
+                return AuditType.Reject;
+            }
+            return AuditType.Update;
         }
 
         private Task OnAfterSaveChanges(List<AuditEntry> auditEntries, CancellationToken cancellationToken = new())

@@ -1,4 +1,4 @@
-﻿using BlazorHero.CleanArchitecture.Application.Responses.Audit;
+using BlazorHero.CleanArchitecture.Application.Responses.Audit;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System;
@@ -120,6 +120,21 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Utilities
                 trial.ShowDetails = false;
             }
             _trail.ShowDetails = !_trail.ShowDetails;
+        }
+
+        private static Color GetAuditTypeColor(string type)
+        {
+            return type switch
+            {
+                "Create" => Color.Success,
+                "Update" => Color.Primary,
+                "Delete" => Color.Error,
+                "SubmitForReview" => Color.Warning,
+                "Approve" => Color.Success,
+                "Reject" => Color.Error,
+                "Archive" => Color.Info,
+                _ => Color.Default
+            };
         }
 
         private async Task ExportToExcelAsync()

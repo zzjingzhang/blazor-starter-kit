@@ -96,6 +96,13 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
             };
         }
 
+        private static string TruncateReason(string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                return string.Empty;
+            return reason.Length > 30 ? $"{reason.Substring(0, 30)}..." : reason;
+        }
+
         private async Task<TableData<GetAllDocumentsResponse>> ServerReload(TableState state)
         {
             if (!string.IsNullOrWhiteSpace(_searchString))

@@ -71,10 +71,30 @@ else
             <MudTd DataLabel="Status">
                 @{
                     var (statusColor, statusIcon) = GetStatusDisplay(context.Status);
+                    var showRejection = context.Status == DocumentStatus.Rejected && !string.IsNullOrWhiteSpace(context.RejectionReason);
                 }
-                <MudChip Color="@statusColor" Variant="Variant.Filled" Size="Size.Small">
-                    @context.Status
-                </MudChip>
+                @if (showRejection)
+                {
+                    <MudTooltip Text="@context.RejectionReason">
+                        <MudChip Color="@statusColor" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.Flag">
+                            @context.Status
+                        </MudChip>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudChip Color="@statusColor" Variant="Variant.Filled" Size="Size.Small" Icon="@statusIcon">
+                        @context.Status
+                    </MudChip>
+                }
+                @if (showRejection)
+                {
+                    <div class="mt-1">
+                        <MudText Typo="Typo.caption" Color="Color.Error">
+                            @_localizer["Rejected:"] @TruncateReason(context.RejectionReason)
+                        </MudText>
+                    </div>
+                }
             </MudTd>
             <MudTd DataLabel="Date Created">@context.CreatedOn</MudTd>
             <MudTd DataLabel="Owner">
